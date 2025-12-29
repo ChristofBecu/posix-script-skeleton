@@ -1,0 +1,24 @@
+#!/bin/sh
+# POSIX entry point
+
+# Fail fast on unset vars
+set -u
+
+# Resolve base directory (POSIX-safe)
+BASEDIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+LOCKFILE="$BASEDIR/data/toolname.lock"
+
+# Load modules
+. "$BASEDIR/lib/core.sh"
+. "$BASEDIR/lib/io.sh"
+. "$BASEDIR/lib/state.sh"
+. "$BASEDIR/lib/lock.sh"
+
+# Acquire lock
+lock_acquire "$LOCKFILE"
+
+# Run main with all arguments
+main "$@"
+sleep 2
+# Release lock
+lock_release "$LOCKFILE"

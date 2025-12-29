@@ -1,0 +1,4 @@
+# Force include bin/ directory despite global gitignore
+!bin/
+
+data/

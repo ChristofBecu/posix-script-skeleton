@@ -1,0 +1,55 @@
+# POSIX-compliant script skeleton
+
+A POSIX-compliant command-line skeleton with file locking and state persistence.
+
+Features:
+
+- Strict POSIX compliance (uses expr instead of $((...)), no bashisms)
+- File-based locking with timeout support
+- Persistent state management
+- Modular architecture with library separation
+
+Requirements:
+
+- POSIX /bin/sh
+- POSIX utilities only (expr, basename, dirname, mkdir, rm, sleep, printf)
+
+Non-POSIX dependencies:
+
+- none
+
+Structure:
+
+- bin/toolname          - Main entry point
+- lib/core.sh          - Core application logic and argument parsing
+- lib/io.sh            - Input/output utility functions
+- lib/state.sh         - State persistence management
+- lib/lock.sh          - File locking with atomic operations
+- data/toolname.state  - Persistent state storage
+- data/toolname.lock   - Lock file for single-instance enforcement
+
+Usage:
+    toolname [options] [args]
+
+Options:
+    -h, --help     Show help message
+
+Lock Behavior:
+
+- Prevents multiple instances from running concurrently
+- Automatically creates lock directory if missing
+- Uses atomic file operations (set -C) for race-free locking
+- Cleanup on EXIT, INT, TERM signals
+
+State Management:
+
+- Maintains run counter across executions
+- Stored in data/toolname.state
+- Automatically initialized on first run
+
+POSIX Compliance:
+
+- All arithmetic uses expr (not $((...)))
+- Command substitution uses $(...) consistently
+- No arrays, no [[ ]], no (( ))
+- Exit codes: 0 (success), 1 (error)
