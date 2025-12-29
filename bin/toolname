@@ -6,7 +6,11 @@ set -u
 
 # Resolve base directory (POSIX-safe)
 BASEDIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-LOCKFILE="$BASEDIR/data/toolname.lock"
+
+# Load configuration
+if [ -f "$BASEDIR/config" ]; then
+    . "$BASEDIR/config"
+fi
 
 # Load modules
 . "$BASEDIR/lib/core.sh"
@@ -14,11 +18,16 @@ LOCKFILE="$BASEDIR/data/toolname.lock"
 . "$BASEDIR/lib/state.sh"
 . "$BASEDIR/lib/lock.sh"
 
-# Acquire lock
-lock_acquire "$LOCKFILE"
+# Parse arguments first (to set LOCK_SCOPE before acquiring lock)
+parse_args "$@"
 
-# Run main with all arguments
-main "$@"
-sleep 2
+# Acquire lock (will use dynamic path based on LOCK_SCOPE)
+lock_acquire
+
+# Run main (skip parse_args since already done)
+load_state
+run
+save_state
+
 # Release lock
-lock_release "$LOCKFILE"
+lock_release

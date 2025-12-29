@@ -28,4 +28,5 @@ parse_args() {
 run() {
     COUNT=$(expr "$COUNT" + 1)
     info "Run count: $COUNT"
+    sleep 2
 }

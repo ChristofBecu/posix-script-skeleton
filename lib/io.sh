@@ -2,7 +2,16 @@
 # Input/output utility functions
 
 usage() {
-    printf '%s\n' "Usage: toolname [options] [args]"
+    cat << EOF
+Usage: toolname [options] [args]
+
+Options:
+    -h, --help         Show this help message
+
+Configuration:
+    Edit the 'config' file to customize lock scope and behavior.
+    Environment variables can override config file settings.
+EOF
     exit 1
 }
 

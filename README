@@ -2,54 +2,126 @@
 
 A POSIX-compliant command-line skeleton with file locking and state persistence.
 
-Features:
+## Features
 
-- Strict POSIX compliance (uses expr instead of $((...)), no bashisms)
-- File-based locking with timeout support
+- Strict POSIX compliance (uses `expr` instead of `$((...))`, no bashisms)
+- Configurable lock scope (per-user or system-wide)
+- File-based locking with timeout support and PID ownership verification
 - Persistent state management
 - Modular architecture with library separation
+- Automatic directory creation for locks and state files
 
-Requirements:
+## Requirements
 
-- POSIX /bin/sh
-- POSIX utilities only (expr, basename, dirname, mkdir, rm, sleep, printf)
+- POSIX `/bin/sh`
+- POSIX utilities only: `expr`, `basename`, `dirname`, `mkdir`, `rm`, `sleep`, `printf`, `cat`, `id`
 
-Non-POSIX dependencies:
+Non-POSIX dependencies: **none**
 
-- none
+## Structure
 
-Structure:
+```
+toolname/
+├── bin/
+│   └── toolname          Main entry point
+├── config                Configuration file (edit to customize behavior)
+├── lib/
+│   ├── core.sh           Core application logic and argument parsing
+│   ├── io.sh             Input/output utility functions
+│   ├── state.sh          State persistence management
+│   └── lock.sh           File locking with atomic operations
+└── data/                 Runtime data (auto-created)
+    ├── toolname.state    System-wide state file
+    └── toolname.<uid>.state  Per-user state files
+```
 
-- bin/toolname          - Main entry point
-- lib/core.sh          - Core application logic and argument parsing
-- lib/io.sh            - Input/output utility functions
-- lib/state.sh         - State persistence management
-- lib/lock.sh          - File locking with atomic operations
-- data/toolname.state  - Persistent state storage
-- data/toolname.lock   - Lock file for single-instance enforcement
+## Configuration
 
-Usage:
-    toolname [options] [args]
+Edit the `config` file to customize behavior:
 
-Options:
-    -h, --help     Show help message
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `LOCK_SCOPE` | `user` / `system` | `user` | Lock scope: per-user or system-wide |
+| `STATE_SCOPE` | `user` / `system` | follows `LOCK_SCOPE` | State file scope |
+| `LOCK_TIMEOUT` | seconds | `0` | Lock timeout (0 = wait indefinitely) |
+| `LOCK_NONBLOCK` | `0` / `1` | `0` | Exit immediately if locked (1) or wait (0) |
 
-Lock Behavior:
+**Note:** Environment variables override config file settings.
 
-- Prevents multiple instances from running concurrently
+## Usage
+
+```bash
+toolname [options] [args]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-h, --help` | Show help message |
+
+### Examples
+
+```bash
+# Per-user locking (default) - each user can run independently
+./bin/toolname
+
+# Run as different users simultaneously (per-user mode)
+./bin/toolname &           # User lock: /tmp/toolname.1000.lock
+sudo ./bin/toolname        # Root lock: /tmp/toolname.0.lock
+
+# System-wide locking - only one instance across all users
+LOCK_SCOPE=system ./bin/toolname
+
+# Or edit 'config' file and set: LOCK_SCOPE=system
+```
+
+## Lock Behavior
+
+### Per-user locking
+
+- Each user gets isolated lock: `/tmp/toolname.<uid>.lock`
+- Multiple users can run simultaneously without blocking
+- State stored per-user: `data/toolname.<uid>.state`
+- Lockfile contains process PID for ownership verification
+
+### System-wide locking
+
+- Single lock for all users: `/tmp/toolname.lock`
+- Only one instance runs across entire system
+- Root and users share the same lock
+- State shared system-wide: `data/toolname.state`
+
+### Common features
+
 - Automatically creates lock directory if missing
-- Uses atomic file operations (set -C) for race-free locking
+- Uses atomic file operations (`set -C`) for race-free locking
+- PID-based ownership verification prevents lock theft
 - Cleanup on EXIT, INT, TERM signals
 
-State Management:
+## State Management
 
 - Maintains run counter across executions
-- Stored in data/toolname.state
+- State scope follows lock scope by default
+- Per-user mode: `data/toolname.<uid>.state`
+- System-wide mode: `data/toolname.state`
 - Automatically initialized on first run
+- Automatically creates state directory if missing
+- Can be overridden with `STATE_SCOPE` environment variable
 
-POSIX Compliance:
+## POSIX Compliance
 
-- All arithmetic uses expr (not $((...)))
-- Command substitution uses $(...) consistently
-- No arrays, no [[ ]], no (( ))
-- Exit codes: 0 (success), 1 (error)
+This skeleton is **strictly POSIX-compliant**:
+
+- ✅ All arithmetic uses `expr` (not `$((...))`)
+- ✅ Command substitution uses `$(...)` consistently
+- ✅ No arrays, no `[[ ]]`, no `(( ))`
+- ✅ No `local` keyword (uses underscore-prefix convention)
+- ✅ Uses `printf` instead of `echo` for portability
+- ✅ Exit codes: 0 (success), 1 (error)
+- ✅ Compatible with: dash, ash, ksh, and any POSIX shell
+
+## License
+
+MIT License
+This is a skeleton/template project. Customize as needed for your use case.

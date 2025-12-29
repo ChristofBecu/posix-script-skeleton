@@ -2,14 +2,30 @@
 # POSIX-safe locking module
 # Supports: blocking, timeout, non-blocking
 
+# Lock scope configuration
+# Set LOCK_SCOPE to control locking behavior:
+#   "user"   - Per-user locking (default, isolated by UID)
+#   "system" - System-wide locking (single instance across all users)
+LOCK_SCOPE="${LOCK_SCOPE:-system}"
+
 # Get default lockfile path
 _get_lockfile_path() {
     if [ -n "$1" ]; then
         printf '%s' "$1"
-    else
-        _basename=$(basename "$0")
-        printf '/tmp/%s.lock' "$_basename"
+        return
     fi
+    
+    _basename=$(basename "$0")
+    
+    case "$LOCK_SCOPE" in
+        system)
+            printf '/tmp/%s.lock' "$_basename"
+            ;;
+        user|*)
+            _uid=$(id -u)
+            printf '/tmp/%s.%s.lock' "$_basename" "$_uid"
+            ;;
+    esac
 }
 
 # Ensure lock directory exists
@@ -25,7 +41,10 @@ _ensure_lock_dir() {
 
 # Try to acquire lock (non-blocking)
 _try_lock() {
-    ( set -C; > "$1" ) 2>/dev/null
+    if ( set -C; printf '%s\n' "$$" > "$1" ) 2>/dev/null; then
+        return 0
+    fi
+    return 1
 }
 
 # Wait for lock with timeout
@@ -55,7 +74,7 @@ _wait_for_lock() {
 # Usage:
 #   lock_acquire "/tmp/tool.lock" [timeout_seconds] [nonblocking]
 lock_acquire() {
-    LOCKFILE=$(_get_lockfile_path "$1")
+    LOCKFILE=$(_get_lockfile_path "${1:-}")
     TIMEOUT=${2:-0}      # 0 = block indefinitely
     NONBLOCK=${3:-0}     # 1 = do not wait, exit if locked
 
@@ -68,7 +87,17 @@ lock_acquire() {
 
 # Release lock explicitly (optional)
 lock_release() {
-    LOCKFILE=$(_get_lockfile_path "$1")
+    LOCKFILE=$(_get_lockfile_path "${1:-}")
+    
+    # Verify we own the lock
+    if [ -f "$LOCKFILE" ]; then
+        _lock_pid=$(cat "$LOCKFILE" 2>/dev/null || printf '')
+        if [ -n "$_lock_pid" ] && [ "$_lock_pid" != "$$" ]; then
+            error "Lock owned by PID $_lock_pid, cannot release" >&2
+            return 1
+        fi
+    fi
+    
     rm -f "$LOCKFILE"
     trap - EXIT INT TERM
 }

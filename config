@@ -1,0 +1,17 @@
+#!/bin/sh
+# Configuration file for toolname
+
+# Lock scope: "user" (per-user locking) or "system" (system-wide locking)
+# Per-user: Each user gets isolated lock (default)
+# System:   Only one instance runs across all users
+LOCK_SCOPE="${LOCK_SCOPE:-user}"
+
+# State scope: "user" (per-user state) or "system" (system-wide state)
+# Follows LOCK_SCOPE by default
+STATE_SCOPE="${STATE_SCOPE:-${LOCK_SCOPE}}"
+
+# Lock timeout in seconds (0 = wait indefinitely)
+LOCK_TIMEOUT="${LOCK_TIMEOUT:-0}"
+
+# Non-blocking lock (1 = exit immediately if locked, 0 = wait)
+LOCK_NONBLOCK="${LOCK_NONBLOCK:-0}"
