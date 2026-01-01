@@ -55,14 +55,20 @@ This interactive command will:
 
    Set `LOCK_SCOPE` and `STATE_SCOPE` to either `"system"` or `"user"`
 
-3. **Test your tool**:
+3. **Implement your tool's logic**:
+
+   - Your own logic and arg parsing for the new tool goes into `lib/core.sh` or other custom files you create
+   - usage function in `lib/io.sh` can be modified for help messages
+   - Other files like lock, state, install, clone and bootstrap don't need modification unless you want to change core behavior
+
+4. **Test your tool**:
 
    ```bash
    ./bin/your-tool-name --help
    ./bin/your-tool-name
    ```
 
-4. **Install** based on config:
+5. **Install** based on config:
 
    ```bash
    # For user installation (LOCK_SCOPE="user")
