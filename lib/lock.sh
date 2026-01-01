@@ -2,11 +2,10 @@
 # POSIX-safe locking module
 # Supports: blocking, timeout, non-blocking
 
-# Lock scope configuration
-# Set LOCK_SCOPE to control locking behavior:
-#   "user"   - Per-user locking (default, isolated by UID)
+# Lock scope configuration is set via config file and bootstrap
+# LOCK_SCOPE values:
+#   "user"   - Per-user locking (isolated by UID)
 #   "system" - System-wide locking (single instance across all users)
-LOCK_SCOPE="${LOCK_SCOPE:-system}"
 
 # Get default lockfile path
 _get_lockfile_path() {

@@ -1,16 +1,30 @@
 #!/bin/sh
 # State persistence management
 
-# State scope follows lock scope by default
-# Set STATE_SCOPE to control state file location:
-#   "user"   - Per-user state files (default)
+# State scope configuration is set via config file and bootstrap
+# STATE_SCOPE values:
+#   "user"   - Per-user state files
 #   "system" - System-wide state file
-STATE_SCOPE="${STATE_SCOPE:-${LOCK_SCOPE:-system}}"
 
 # Get state file path
 get_state_file() {
-    _basedir="${BASEDIR:-.}/data"
     _basename=$(basename "$0")
+    
+    # Determine base directory based on install mode
+    case "${INSTALL_MODE:-dev}" in
+        dev)
+            _basedir="${BASEDIR:-.}/data"
+            ;;
+        user)
+            _basedir="$HOME/.local/state/$TOOL_NAME"
+            ;;
+        system)
+            _basedir="/var/tmp/$TOOL_NAME"
+            ;;
+        *)
+            _basedir="${BASEDIR:-.}/data"
+            ;;
+    esac
     
     case "$STATE_SCOPE" in
         system)

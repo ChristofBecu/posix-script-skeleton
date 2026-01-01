@@ -12,7 +12,7 @@ A POSIX-compliant command-line skeleton with file locking and state persistence.
 - Automatic directory creation for locks and state files
 - Support for both system-wide and per-user installation
 - Self-installing - no build tools required
-- **Fully dynamic naming** - rename `bin/toolname` to anything, all paths adapt automatically
+- **Fully dynamic naming** - rename `bin/posix-script-skeleton` to anything by cloning the tool, all paths adapt automatically
 
 ## Requirements
 
@@ -23,29 +23,29 @@ Non-POSIX dependencies: **none**
 
 ## Quick Start
 
-### Option 1: Clone with a new name (Recommended)
+### Creating a New Tool from the Skeleton
 
-Use the interactive clone command:
+**Important:** The original `posix-script-skeleton` is a template. Use `--clone` to create your own tool:
 
 ```bash
-./bin/toolname --clone
+./bin/posix-script-skeleton --clone
 ```
 
-This will:
+This interactive command will:
+
 - Ask for your tool name
 - Ask for target directory
 - Copy the skeleton with the new name
+- Remove the skeleton marker (making it a standalone tool)
 - Guide you through next steps
 
-### Option 2: Manual rename
+### After Cloning: Configure and Install
 
-1. **Rename the tool**:
+1. **Navigate to your new tool**:
 
    ```bash
-   mv bin/toolname bin/myapp
+   cd /path/to/your-new-tool
    ```
-
-   All paths, configs, and messages automatically adapt to the new name!
 
 2. **Edit the config** to set your preferences:
 
@@ -55,19 +55,28 @@ This will:
 
    Set `LOCK_SCOPE` and `STATE_SCOPE` to either `"system"` or `"user"`
 
-3. **Install** based on config:
+3. **Test your tool**:
+
+   ```bash
+   ./bin/your-tool-name --help
+   ./bin/your-tool-name
+   ```
+
+4. **Install** based on config:
 
    ```bash
    # For user installation (LOCK_SCOPE="user")
-   ./bin/myapp --install
+   ./bin/your-tool-name --install
    
    # For system-wide installation (LOCK_SCOPE="system")
-   sudo ./bin/myapp --install
+   sudo ./bin/your-tool-name --install
    ```
 
 ## Installation
 
-### Quick Start
+**Note:** The `--install` command is only available in cloned tools. The original skeleton must be cloned first using `--clone`.
+
+### Installing Your Cloned Tool
 
 1. Edit the config file to set your preferences:
 
@@ -81,13 +90,11 @@ This will:
 
    ```bash
    # For user installation (LOCK_SCOPE="user")
-   ./bin/<toolname> --install
+   ./bin/<your-tool-name> --install
    
    # For system-wide installation (LOCK_SCOPE="system")
-   sudo ./bin/<toolname> --install
+   sudo ./bin/<your-tool-name> --install
    ```
-
-   (Replace `<toolname>` with your actual script name)
 
 ### System-wide installation
 
@@ -125,12 +132,14 @@ This will install:
 
 ### Uninstallation
 
-```bash
-# Automatically detects install mode
-<toolname> --uninstall
+**Note:** The `--uninstall` command is only available from installed versions, not from source.
 
-# Use sudo if system-wide
-sudo <toolname> --uninstall
+```bash
+# From user installation
+your-tool-name --uninstall
+
+# From system-wide installation
+sudo your-tool-name --uninstall
 ```
 
 **Note:** State directories are preserved during uninstallation. Remove them manually if needed.
@@ -151,7 +160,7 @@ The tool name adapts throughout the structure. Examples below use `<toolname>` a
 
 ### Installed (system-wide)
 
-```
+```sh
 /bin/<toolname>                    Main binary
 /etc/<toolname>/
 ├── config                         Configuration file
@@ -169,7 +178,7 @@ The tool name adapts throughout the structure. Examples below use `<toolname>` a
 
 ### Installed (per-user)
 
-```
+```sh
 ~/.local/bin/<toolname>            Main binary
 ~/.<toolname>rc                    Configuration file
 ~/.local/lib/<toolname>/           Library modules
@@ -180,14 +189,16 @@ The tool name adapts throughout the structure. Examples below use `<toolname>` a
 
 ### Source (development)
 
-```
+```sh
 <toolname>/
+├── .skeleton-origin               Marker (original skeleton only)
 ├── bin/
 │   └── <toolname>                 Main entry point
 ├── config                         Configuration file
 ├── lib/
 │   ├── bootstrap.sh               Environment detection
 │   ├── core.sh                    Core application logic
+│   ├── clone.sh                   Clone functionality
 │   ├── install.sh                 Installation logic
 │   ├── io.sh                      Input/output utilities
 │   ├── lock.sh                    File locking
@@ -196,71 +207,98 @@ The tool name adapts throughout the structure. Examples below use `<toolname>` a
     └── <toolname>.<uid>.state     Per-user state files
 ```
 
+**Note:** The `.skeleton-origin` marker file identifies the original skeleton and is removed during the clone operation.
+
 ## Configuration
 
-The configuration is automatically set during installation based on the install mode:
+**All configuration is done via the config file only.** Environment variables do not override config settings.
 
-- **System-wide install**: Config at `/etc/<toolname>/config` with `LOCK_SCOPE=system` and `STATE_SCOPE=system`
-- **Per-user install**: Config at `~/.<toolname>rc` with `LOCK_SCOPE=user` and `STATE_SCOPE=user`
-- **Development mode**: Config at `./config` (customizable)
+The configuration file location depends on the mode:
+
+- **System-wide install**: Config at `/etc/<toolname>/config`
+- **Per-user install**: Config at `~/.<toolname>rc`
+- **Development mode**: Config at `./config` (in source directory)
 
 ### Configuration Variables
 
 | Variable | Values | Default | Description |
-|----------|--------|---------|-------------|
-| `LOCK_SCOPE` | `user` / `system` | set by install | Lock scope: per-user or system-wide |
-| `STATE_SCOPE` | `user` / `system` | follows `LOCK_SCOPE` | State file scope |
+| -------- | ------ | ------- | ----------- |
+| `LOCK_SCOPE` | `user` / `system` | `user` | Lock scope: per-user or system-wide |
+| `STATE_SCOPE` | `user` / `system` | `user` | State file scope |
 | `LOCK_TIMEOUT` | seconds | `0` | Lock timeout (0 = wait indefinitely) |
 | `LOCK_NONBLOCK` | `0` / `1` | `0` | Exit immediately if locked (1) or wait (0) |
 
-**Note:** Environment variables override config file settings.
+**Important:** Edit the config file directly. Environment variables cannot override these settings.
 
-### Config Precedence
+### Config File Detection
 
-The tool sources config files in this order (first found wins):
+The tool automatically detects which config to use based on its installation:
 
-1. `~/.<toolname>rc` (user config)
-2. `/etc/<toolname>/config` (system config)
-3. `./config` (development mode)
-
-The tool sources config files in this order (first found wins):
-
-1. `$HOME/.toolnamerc` (user config)
-2. `/etc/toolname/config` (system config)
-3. `./config` (development mode)
+1. **Development mode** (running from source): Uses `./config`
+2. **User installation**: Uses `~/.<toolname>rc`
+3. **System installation**: Uses `/etc/<toolname>/config`
 
 ## Usage
 
-After installation, run the tool directly:
+### Available Commands
+
+Commands available depend on the tool type and mode:
+
+#### Original Skeleton (posix-script-skeleton)
 
 ```bash
-toolname [options] [args]
+./bin/posix-script-skeleton --clone    # Create a new tool
+./bin/posix-script-skeleton --help     # Show help
 ```
 
-### Options
+#### Cloned Tool (Development Mode)
 
-| Option | Description |
-|--------|-------------|
-| `-h, --help` | Show help message |
+```bash
+./bin/your-tool-name --install         # Install the tool
+./bin/your-tool-name --help            # Show help
+./bin/your-tool-name                   # Run the tool
+```
+
+#### Installed Tool
+
+```bash
+your-tool-name --uninstall             # Uninstall
+your-tool-name --help                  # Show help
+your-tool-name                         # Run the tool
+```
+
+### Common Options
+
+| Option | Description | Available In |
+| ------ | ----------- | ------------ |
+| `-h, --help` | Show help message | All modes |
+| `--clone` | Clone skeleton with new name | Original skeleton only |
+| `--install` | Install the tool | Cloned dev mode only |
+| `--uninstall` | Uninstall the tool | Installed mode only |
 
 ### Examples
 
 ```bash
-# After user installation - per-user locking
-<toolname>
+# Clone the skeleton to create your tool
+./bin/posix-script-skeleton --clone
 
-# After system installation - system-wide locking
-<toolname>
+# Test your cloned tool before installation
+cd /path/to/your-tool
+./bin/your-tool --help
+./bin/your-tool
 
-# Run as different users simultaneously (per-user mode)
-<toolname> &           # User lock: /tmp/<toolname>.1000.lock
-sudo <toolname>        # Root lock: /tmp/<toolname>.0.lock
+# Install as user (per-user locking)
+./bin/your-tool --install
 
-# Override lock scope via environment variable
-LOCK_SCOPE=system <toolname>
+# After user installation
+your-tool              # Per-user lock: /tmp/your-tool.1000.lock
 
-# Development mode (from source directory)
-./bin/<toolname>
+# Run as different users simultaneously (user mode)
+your-tool &            # User lock: /tmp/your-tool.1000.lock
+sudo your-tool         # Root lock: /tmp/your-tool.0.lock
+
+# Uninstall when done
+your-tool --uninstall
 ```
 
 ## Lock Behavior
@@ -289,13 +327,13 @@ LOCK_SCOPE=system <toolname>
 ## State Management
 
 - Maintains run counter across executions
-- State scope follows lock scope by default
+- State scope configured via config file only
 - **System install**: `/var/tmp/<toolname>/<toolname>.state`
 - **User install**: `~/.local/state/<toolname>/<toolname>.state`
 - **Development mode**: `./data/<toolname>.<uid>.state`
 - Automatically initialized on first run
 - Automatically creates state directory if missing
-- Can be overridden with `STATE_SCOPE` environment variable
+- Configure via `STATE_SCOPE` in config file
 
 ## POSIX Compliance
 

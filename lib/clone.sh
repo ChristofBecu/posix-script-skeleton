@@ -157,6 +157,12 @@ clone_main() {
     mkdir -p "$TARGET_DIR/data"
     print_success "Created data/ directory"
     
+    # Remove skeleton origin marker to distinguish clone from original
+    if [ -f "$TARGET_DIR/.skeleton-origin" ]; then
+        rm -f "$TARGET_DIR/.skeleton-origin"
+        print_success "Removed skeleton origin marker"
+    fi
+    
     # Update config file comment (optional)
     if command -v sed >/dev/null 2>&1; then
         sed -i.bak "s/# Configuration file for $TOOL_NAME/# Configuration file for $NEW_TOOL_NAME/" "$TARGET_DIR/config" 2>/dev/null && rm -f "$TARGET_DIR/config.bak"

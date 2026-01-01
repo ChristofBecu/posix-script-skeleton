@@ -11,27 +11,38 @@ main() {
 parse_args() {
     while [ $# -gt 0 ]; do
         case "$1" in
-            --install|--uninstall)
-                # Check if running from source directory (dev mode)
-                if [ "${INSTALL_MODE:-}" = "dev" ]; then
-                    . "$BASEDIR/lib/install.sh"
-                    case "$1" in
-                        --install)   install_main ;;
-                        --uninstall) uninstall_main ;;
-                    esac
-                    exit 0
+            --install)
+                # Only available in cloned dev versions (not original skeleton, not installed)
+                if [ "${INSTALL_MODE:-}" != "dev" ]; then
+                    error "--install can only be used from the source directory"
+                elif [ "${IS_SKELETON_ORIGIN:-false}" = "true" ]; then
+                    error "--install is not available in the original skeleton. Use --clone first."
                 else
-                    error "$1 can only be used from the source directory"
+                    . "$BASEDIR/lib/install.sh"
+                    install_main
+                    exit 0
+                fi
+                ;;
+            --uninstall)
+                # Only available in installed versions (user or system mode)
+                if [ "${INSTALL_MODE:-}" = "dev" ]; then
+                    error "--uninstall can only be used from an installed version"
+                else
+                    . "$LIB_DIR/install.sh"
+                    uninstall_main
+                    exit 0
                 fi
                 ;;
             --clone)
-                # Check if running from source directory (dev mode)
-                if [ "${INSTALL_MODE:-}" = "dev" ]; then
+                # Only available in original skeleton in dev mode
+                if [ "${INSTALL_MODE:-}" != "dev" ]; then
+                    error "--clone can only be used from the source directory"
+                elif [ "${IS_SKELETON_ORIGIN:-false}" != "true" ]; then
+                    error "--clone is only available in the original skeleton"
+                else
                     . "$BASEDIR/lib/clone.sh"
                     clone_main
                     exit 0
-                else
-                    error "--clone can only be used from the source directory"
                 fi
                 ;;
             -h|--help)

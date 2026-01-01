@@ -49,13 +49,22 @@ bootstrap_init() {
         exit 1
     fi
     
+    # Detect if this is the original skeleton (has .skeleton-origin marker)
+    if [ "${INSTALL_MODE}" = "dev" ] && [ -f "$BASEDIR/.skeleton-origin" ]; then
+        IS_SKELETON_ORIGIN="true"
+    else
+        IS_SKELETON_ORIGIN="false"
+    fi
+    
     # Export environment variables
     export INSTALL_MODE
     export BASEDIR
     export LIB_DIR
     export CONFIG_FILE
+    export IS_SKELETON_ORIGIN
     
-    # Set defaults if not configured
+    # Set defaults for config values if not set in config file
+    # No environment variable override - config file is sole source
     LOCK_SCOPE="${LOCK_SCOPE:-system}"
     STATE_SCOPE="${STATE_SCOPE:-${LOCK_SCOPE}}"
     LOCK_TIMEOUT="${LOCK_TIMEOUT:-0}"
