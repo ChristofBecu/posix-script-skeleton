@@ -1,33 +1,35 @@
 #!/bin/sh
 # POSIX entry point
 
-# Fail fast on unset vars
 set -u
 
-# Resolve base directory (POSIX-safe)
-BASEDIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# Get tool name
+_tool_name=$(basename "$0")
 
-# Load configuration
-if [ -f "$BASEDIR/config" ]; then
-    . "$BASEDIR/config"
+# Find and source bootstrap
+_script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+# Try source dir first, then user install, then system install
+if [ -f "$_script_dir/lib/bootstrap.sh" ] && [ -f "$_script_dir/config" ]; then
+    . "$_script_dir/lib/bootstrap.sh" && bootstrap_init "$_script_dir"
+elif [ -f "$HOME/.local/lib/$_tool_name/bootstrap.sh" ]; then
+    . "$HOME/.local/lib/$_tool_name/bootstrap.sh" && bootstrap_init
+elif [ -f "/etc/$_tool_name/lib/bootstrap.sh" ]; then
+    . "/etc/$_tool_name/lib/bootstrap.sh" && bootstrap_init
+else
+    printf 'Error: Cannot find bootstrap\n' >&2 && exit 1
 fi
 
 # Load modules
-. "$BASEDIR/lib/core.sh"
-. "$BASEDIR/lib/io.sh"
-. "$BASEDIR/lib/state.sh"
-. "$BASEDIR/lib/lock.sh"
+. "$LIB_DIR/core.sh"
+. "$LIB_DIR/io.sh"
+. "$LIB_DIR/state.sh"
+. "$LIB_DIR/lock.sh"
 
-# Parse arguments first (to set LOCK_SCOPE before acquiring lock)
+# Execute
 parse_args "$@"
-
-# Acquire lock (will use dynamic path based on LOCK_SCOPE)
 lock_acquire
-
-# Run main (skip parse_args since already done)
 load_state
 run
 save_state
-
-# Release lock
 lock_release

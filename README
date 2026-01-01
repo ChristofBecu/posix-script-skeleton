@@ -1,6 +1,6 @@
 # POSIX-compliant script skeleton
 
-A POSIX-compliant command-line skeleton with file locking and state persistence.
+A POSIX-compliant command-line skeleton with file locking and state persistence. Fully renameable - the tool adapts to whatever you name the binary.
 
 ## Features
 
@@ -10,6 +10,9 @@ A POSIX-compliant command-line skeleton with file locking and state persistence.
 - Persistent state management
 - Modular architecture with library separation
 - Automatic directory creation for locks and state files
+- Support for both system-wide and per-user installation
+- Self-installing - no build tools required
+- **Fully dynamic naming** - rename `bin/toolname` to anything, all paths adapt automatically
 
 ## Requirements
 
@@ -18,37 +21,217 @@ A POSIX-compliant command-line skeleton with file locking and state persistence.
 
 Non-POSIX dependencies: **none**
 
+## Quick Start
+
+### Option 1: Clone with a new name (Recommended)
+
+Use the interactive clone command:
+
+```bash
+./bin/toolname --clone
+```
+
+This will:
+- Ask for your tool name
+- Ask for target directory
+- Copy the skeleton with the new name
+- Guide you through next steps
+
+### Option 2: Manual rename
+
+1. **Rename the tool**:
+
+   ```bash
+   mv bin/toolname bin/myapp
+   ```
+
+   All paths, configs, and messages automatically adapt to the new name!
+
+2. **Edit the config** to set your preferences:
+
+   ```bash
+   vi config
+   ```
+
+   Set `LOCK_SCOPE` and `STATE_SCOPE` to either `"system"` or `"user"`
+
+3. **Install** based on config:
+
+   ```bash
+   # For user installation (LOCK_SCOPE="user")
+   ./bin/myapp --install
+   
+   # For system-wide installation (LOCK_SCOPE="system")
+   sudo ./bin/myapp --install
+   ```
+
+## Installation
+
+### Quick Start
+
+1. Edit the config file to set your preferences:
+
+   ```bash
+   vi config
+   ```
+
+   Set `LOCK_SCOPE` and `STATE_SCOPE` to either `"system"` or `"user"`
+
+2. Install based on config:
+
+   ```bash
+   # For user installation (LOCK_SCOPE="user")
+   ./bin/<toolname> --install
+   
+   # For system-wide installation (LOCK_SCOPE="system")
+   sudo ./bin/<toolname> --install
+   ```
+
+   (Replace `<toolname>` with your actual script name)
+
+### System-wide installation
+
+If your config has `LOCK_SCOPE="system"` or `STATE_SCOPE="system"`:
+
+```bash
+sudo ./bin/<toolname> --install
+```
+
+This will install:
+
+- Binary: `/bin/<toolname>`
+- Config: `/etc/<toolname>/config`
+- Libraries: `/etc/<toolname>/lib/`
+- State directory: `/var/tmp/<toolname>/`
+- Lock file: `/tmp/<toolname>.lock`
+
+### Per-user installation
+
+If your config has `LOCK_SCOPE="user"` and `STATE_SCOPE="user"`:
+
+```bash
+./bin/<toolname> --install
+```
+
+This will install:
+
+- Binary: `~/.local/bin/<toolname>`
+- Config: `~/.<toolname>rc`
+- Libraries: `~/.local/lib/<toolname>/`
+- State directory: `~/.local/state/<toolname>/`
+- Lock file: `/tmp/<toolname>.<uid>.lock`
+
+**Note:** Make sure `~/.local/bin` is in your `PATH`.
+
+### Uninstallation
+
+```bash
+# Automatically detects install mode
+<toolname> --uninstall
+
+# Use sudo if system-wide
+sudo <toolname> --uninstall
+```
+
+**Note:** State directories are preserved during uninstallation. Remove them manually if needed.
+
+## Development Mode
+
+For development, you can run directly from the source directory without installation:
+
+```bash
+./bin/<toolname>
+```
+
+In development mode, the tool uses the local `config` file and stores state in `data/`.
+
 ## Structure
 
+The tool name adapts throughout the structure. Examples below use `<toolname>` as a placeholder for your actual tool name.
+
+### Installed (system-wide)
+
 ```
-toolname/
+/bin/<toolname>                    Main binary
+/etc/<toolname>/
+├── config                         Configuration file
+└── lib/                           Library modules
+    ├── bootstrap.sh
+    ├── core.sh
+    ├── install.sh
+    ├── io.sh
+    ├── lock.sh
+    └── state.sh
+/var/tmp/<toolname>/               State files
+└── <toolname>.state
+/tmp/<toolname>.lock               Lock file
+```
+
+### Installed (per-user)
+
+```
+~/.local/bin/<toolname>            Main binary
+~/.<toolname>rc                    Configuration file
+~/.local/lib/<toolname>/           Library modules
+~/.local/state/<toolname>/         State files
+└── <toolname>.state
+/tmp/<toolname>.<uid>.lock         Lock file
+```
+
+### Source (development)
+
+```
+<toolname>/
 ├── bin/
-│   └── toolname          Main entry point
-├── config                Configuration file (edit to customize behavior)
+│   └── <toolname>                 Main entry point
+├── config                         Configuration file
 ├── lib/
-│   ├── core.sh           Core application logic and argument parsing
-│   ├── io.sh             Input/output utility functions
-│   ├── state.sh          State persistence management
-│   └── lock.sh           File locking with atomic operations
-└── data/                 Runtime data (auto-created)
-    ├── toolname.state    System-wide state file
-    └── toolname.<uid>.state  Per-user state files
+│   ├── bootstrap.sh               Environment detection
+│   ├── core.sh                    Core application logic
+│   ├── install.sh                 Installation logic
+│   ├── io.sh                      Input/output utilities
+│   ├── lock.sh                    File locking
+│   └── state.sh                   State persistence
+└── data/                          Runtime data (auto-created)
+    └── <toolname>.<uid>.state     Per-user state files
 ```
 
 ## Configuration
 
-Edit the `config` file to customize behavior:
+The configuration is automatically set during installation based on the install mode:
+
+- **System-wide install**: Config at `/etc/<toolname>/config` with `LOCK_SCOPE=system` and `STATE_SCOPE=system`
+- **Per-user install**: Config at `~/.<toolname>rc` with `LOCK_SCOPE=user` and `STATE_SCOPE=user`
+- **Development mode**: Config at `./config` (customizable)
+
+### Configuration Variables
 
 | Variable | Values | Default | Description |
 |----------|--------|---------|-------------|
-| `LOCK_SCOPE` | `user` / `system` | `user` | Lock scope: per-user or system-wide |
+| `LOCK_SCOPE` | `user` / `system` | set by install | Lock scope: per-user or system-wide |
 | `STATE_SCOPE` | `user` / `system` | follows `LOCK_SCOPE` | State file scope |
 | `LOCK_TIMEOUT` | seconds | `0` | Lock timeout (0 = wait indefinitely) |
 | `LOCK_NONBLOCK` | `0` / `1` | `0` | Exit immediately if locked (1) or wait (0) |
 
 **Note:** Environment variables override config file settings.
 
+### Config Precedence
+
+The tool sources config files in this order (first found wins):
+
+1. `~/.<toolname>rc` (user config)
+2. `/etc/<toolname>/config` (system config)
+3. `./config` (development mode)
+
+The tool sources config files in this order (first found wins):
+
+1. `$HOME/.toolnamerc` (user config)
+2. `/etc/toolname/config` (system config)
+3. `./config` (development mode)
+
 ## Usage
+
+After installation, run the tool directly:
 
 ```bash
 toolname [options] [args]
@@ -63,34 +246,38 @@ toolname [options] [args]
 ### Examples
 
 ```bash
-# Per-user locking (default) - each user can run independently
-./bin/toolname
+# After user installation - per-user locking
+<toolname>
+
+# After system installation - system-wide locking
+<toolname>
 
 # Run as different users simultaneously (per-user mode)
-./bin/toolname &           # User lock: /tmp/toolname.1000.lock
-sudo ./bin/toolname        # Root lock: /tmp/toolname.0.lock
+<toolname> &           # User lock: /tmp/<toolname>.1000.lock
+sudo <toolname>        # Root lock: /tmp/<toolname>.0.lock
 
-# System-wide locking - only one instance across all users
-LOCK_SCOPE=system ./bin/toolname
+# Override lock scope via environment variable
+LOCK_SCOPE=system <toolname>
 
-# Or edit 'config' file and set: LOCK_SCOPE=system
+# Development mode (from source directory)
+./bin/<toolname>
 ```
 
 ## Lock Behavior
 
-### Per-user locking
+### Per-user locking (user installation default)
 
-- Each user gets isolated lock: `/tmp/toolname.<uid>.lock`
+- Each user gets isolated lock: `/tmp/<toolname>.<uid>.lock`
 - Multiple users can run simultaneously without blocking
-- State stored per-user: `data/toolname.<uid>.state`
+- State stored per-user: `~/.local/state/<toolname>/<toolname>.state`
 - Lockfile contains process PID for ownership verification
 
-### System-wide locking
+### System-wide locking (system installation default)
 
-- Single lock for all users: `/tmp/toolname.lock`
+- Single lock for all users: `/tmp/<toolname>.lock`
 - Only one instance runs across entire system
 - Root and users share the same lock
-- State shared system-wide: `data/toolname.state`
+- State shared system-wide: `/var/tmp/<toolname>/<toolname>.state`
 
 ### Common features
 
@@ -103,8 +290,9 @@ LOCK_SCOPE=system ./bin/toolname
 
 - Maintains run counter across executions
 - State scope follows lock scope by default
-- Per-user mode: `data/toolname.<uid>.state`
-- System-wide mode: `data/toolname.state`
+- **System install**: `/var/tmp/<toolname>/<toolname>.state`
+- **User install**: `~/.local/state/<toolname>/<toolname>.state`
+- **Development mode**: `./data/<toolname>.<uid>.state`
 - Automatically initialized on first run
 - Automatically creates state directory if missing
 - Can be overridden with `STATE_SCOPE` environment variable
