@@ -1,5 +1,10 @@
 # POSIX-compliant script skeleton
 
+<!-- add logo.png -->
+<p align="center">
+  <img src="assets/logo.png" alt="POSIX Script Skeleton Logo" width="50%" height="auto"/>
+</p>
+
 A POSIX-compliant command-line skeleton with file locking and state persistence. Fully renameable - the tool adapts to whatever you name the binary.
 
 ## Features
